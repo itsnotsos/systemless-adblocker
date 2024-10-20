@@ -3,7 +3,9 @@ name: Monthly Update and Release
 on:
   schedule:
     # Run the workflow on the first day of every month at 12:00 PM UTC
-    - cron: '0 12 1 * *'
+    - cron: '0 12 15 * *'
+
+  workflow_dispatch:
 
 jobs:
   update-module:
