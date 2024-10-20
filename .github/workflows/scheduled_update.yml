@@ -1,0 +1,78 @@
+name: Monthly Update and Release
+
+on:
+  schedule:
+    # Run the workflow on the first day of every month at 12:00 PM UTC
+    - cron: '0 12 1 * *'
+
+jobs:
+  update-module:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Set up Git user
+      - name: Set up Git user
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+
+      # Update version in module.prop
+      - name: Update version in module.prop
+        id: update-version
+        run: |
+          # Extract the current version
+          CURRENT_VERSION=$(grep 'version=' module.prop | cut -d'=' -f2)
+          # Increment the version (assuming it's in the format 1.x)
+          NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{print $1"."$2+1}')
+          # Update the version in module.prop
+          sed -i "s/version=${CURRENT_VERSION}/version=${NEW_VERSION}/" module.prop
+          # Commit the updated module.prop file
+          git add module.prop
+          git commit -m "Update version to ${NEW_VERSION}"
+
+      # Update version and zipUrl in update.json
+      - name: Update version in update.json
+        run: |
+          CURRENT_VERSION=$(grep 'version=' module.prop | cut -d'=' -f2)
+          NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{print $1"."$2+1}')
+          # Update version and zipUrl in update.json
+          sed -i "s/\"version\":.*/\"version\": \"${NEW_VERSION}\",/" update.json
+          sed -i "s/\"zipUrl\":.*/\"zipUrl\": \"https:\/\/github.com\/Magisk-Modules-Alt-Repo\/systemless-adblocker\/releases\/download\/${NEW_VERSION}\/Systemless_Adblocker_V${NEW_VERSION}.zip\",/" update.json
+          # Commit the updated update.json
+          git add update.json
+          git commit -m "Update update.json to version ${NEW_VERSION}"
+
+      # Append to changelog.md
+      - name: Update changelog.md
+        run: |
+          NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{print $1"."$2+1}')
+          echo "### v${NEW_VERSION}" >> changelog.md
+          echo "- Scheduled update" >> changelog.md
+          # Commit the updated changelog.md
+          git add changelog.md
+          git commit -m "Update changelog for version ${NEW_VERSION}"
+
+      # Push changes to repository
+      - name: Push changes
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Create a new GitHub Release
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: "v${{ steps.update-version.outputs.new_version }}"
+          name: "v${{ steps.update-version.outputs.new_version }}"
+          body: |
+            ## Systemless Adblocker
+            Scheduled update for version ${{ steps.update-version.outputs.new_version }}.
+            - See full changelog in the [changelog.md](https://github.com/Magisk-Modules-Alt-Repo/systemless-adblocker/blob/main/changelog.md).
+          files: |
+            Systemless_Adblocker_V${{ steps.update-version.outputs.new_version }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
