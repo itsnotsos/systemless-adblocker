@@ -36,3 +36,5 @@ https://t.me/burhanverse
 - Initial release.
 ### v.1
 - Scheduled update
+### v.1
+- Scheduled update
