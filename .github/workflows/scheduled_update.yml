@@ -2,9 +2,10 @@ name: Monthly Update and Release
 
 on:
   schedule:
-    # Run the workflow on the first day of every month at 12:00 PM UTC
+    # Run the workflow on the 15th day of every month at 12:00 PM UTC
     - cron: '0 12 15 * *'
 
+  # Allow manual dispatch of the workflow
   workflow_dispatch:
 
 jobs:
@@ -58,13 +59,19 @@ jobs:
           git add changelog.md
           git commit -m "Update changelog for version ${NEW_VERSION}"
 
+      # Zip the module files
+      - name: Zip module files
+        run: |
+          NEW_VERSION=$(grep 'version=' module.prop | cut -d'=' -f2)
+          zip -r Systemless_Adblocker_V${NEW_VERSION}.zip .
+
       # Push changes to repository
       - name: Push changes
         uses: ad-m/github-push-action@v0.6.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Create a new GitHub Release
+      # Create a new GitHub Release and upload the zip file
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
