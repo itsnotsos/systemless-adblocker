@@ -34,3 +34,5 @@ https://t.me/burhanverse
 ### v1.0
 - Added key-selector to switch between different hosts.
 - Initial release.
+### v.1
+- Scheduled update
