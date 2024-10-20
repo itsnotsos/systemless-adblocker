@@ -5,7 +5,6 @@ on:
     # Run the workflow on the 15th day of every month at 12:00 PM UTC
     - cron: '0 12 15 * *'
 
-  # Allow manual dispatch of the workflow
   workflow_dispatch:
 
 jobs:
@@ -32,13 +31,9 @@ jobs:
       - name: Update version in module.prop
         id: update-version
         run: |
-          # Extract the current version
           CURRENT_VERSION=$(grep 'version=' module.prop | cut -d'=' -f2)
-          # Increment the version (assuming it's in the format 1.x)
           NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{print $1"."$2+1}')
-          # Update the version in module.prop
           sed -i "s/version=${CURRENT_VERSION}/version=${NEW_VERSION}/" module.prop
-          # Commit the updated module.prop file
           git add module.prop
           git commit -m "Update version to ${NEW_VERSION}"
 
@@ -47,10 +42,8 @@ jobs:
         run: |
           CURRENT_VERSION=$(grep 'version=' module.prop | cut -d'=' -f2)
           NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{print $1"."$2+1}')
-          # Update version and zipUrl in update.json
           sed -i "s/\"version\":.*/\"version\": \"${NEW_VERSION}\",/" update.json
           sed -i "s/\"zipUrl\":.*/\"zipUrl\": \"https:\/\/github.com\/Magisk-Modules-Alt-Repo\/systemless-adblocker\/releases\/download\/${NEW_VERSION}\/Systemless_Adblocker_V${NEW_VERSION}.zip\",/" update.json
-          # Commit the updated update.json
           git add update.json
           git commit -m "Update update.json to version ${NEW_VERSION}"
 
@@ -60,15 +53,17 @@ jobs:
           NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{print $1"."$2+1}')
           echo "### v${NEW_VERSION}" >> changelog.md
           echo "- Scheduled update" >> changelog.md
-          # Commit the updated changelog.md
           git add changelog.md
           git commit -m "Update changelog for version ${NEW_VERSION}"
 
       # Zip the module files
       - name: Zip module files
+        id: zip-files
         run: |
           NEW_VERSION=$(grep 'version=' module.prop | cut -d'=' -f2)
-          zip -r Systemless_Adblocker_V${NEW_VERSION}.zip .
+          ZIP_NAME="Systemless_Adblocker_V${NEW_VERSION}.zip"
+          zip -r $ZIP_NAME .
+          echo "::set-output name=zip_name::$ZIP_NAME"
 
       # Push changes to the main branch
       - name: Push changes
@@ -86,7 +81,6 @@ jobs:
             ## Systemless Adblocker
             Scheduled update for version ${{ steps.update-version.outputs.new_version }}.
             - See full changelog in the [changelog.md](https://github.com/Magisk-Modules-Alt-Repo/systemless-adblocker/blob/main/changelog.md).
-          files: |
-            Systemless_Adblocker_V${{ steps.update-version.outputs.new_version }}.zip
+          files: ${{ steps.zip-files.outputs.zip_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
